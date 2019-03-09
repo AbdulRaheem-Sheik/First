@@ -1,3 +1,4 @@
 
-for i in range(10):
+num = input('Enter Any Number\n')
+for i in range(num):
   print("Hello World")
