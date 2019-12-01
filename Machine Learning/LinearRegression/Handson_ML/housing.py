@@ -104,3 +104,88 @@ def test_set_check(identifier, test_ratio):
 # print("Train Set with ration 0.8 \n%s"%train_set)
 # print("Test Set with ration 0.2 \n%s"%test_set)
 # =============================================================================
+
+# =============================================================================
+# #Another way to create unique identifier with latitude and longitude and it 
+# #should guaranteed to be stable for a few million years,
+# =============================================================================
+def test_by_latitude_longitude(data, test_ratio, id_column):
+    data[id_column] = data['longitude'] * 1000 + data['latitude']
+    ids = data[id_column]
+    in_test_set = ids.apply(lambda id_: test_set_check(id_, test_ratio))
+    return data.loc[~in_test_set], data.loc[in_test_set]    
+
+#If you want to run above code, uncomment below lines
+# =============================================================================
+# housing = load_housing_data()
+# train_set, test_set = test_by_latitude_longitude(housing, 0.2, "id")
+# print("Train Set with ration 0.8 \n%s"%train_set)
+# print("Test Set with ration 0.2 \n%s"%test_set)
+# =============================================================================
+
+
+# =============================================================================
+# Scikit-Learn package also provides few functions to split datasets into multiple
+# subsets in various ways.
+# Below is one of the example using scikit learn to split train and test data
+# =============================================================================
+from sklearn.model_selection import train_test_split
+
+def split_train_test_by_sklearn(data, test_ratio):
+    return train_test_split(data, test_size = test_ratio, random_state=42)
+
+#If you want to run above code, uncomment below lines
+# =============================================================================
+# housing = load_housing_data()
+# train_set, test_set = split_train_test_by_sklearn(housing, 0.2)
+# print("Train Set with ration 0.8 \n%s"%train_set)
+# print("Test Set with ration 0.2 \n%s"%test_set)8
+# =============================================================================
+
+
+# =============================================================================
+# Stratified Sampling
+# The above test sets are random data sets and not categorical.
+# In Stratfied Sampling we divide data into various categories, since median income
+# is a continous numerical attribute, we first need to create an income category
+# attribute. pd.cut() function to create an income category attribute with five categories
+# labelled from 1 to 5, category 1 ranges from 0 to 1.5, cat 2 ranges from 1.5 to 3 and so on.
+# =============================================================================
+    
+def create_income_category_attribute(data):
+    
+    data['income_cat'] = pd.cut(data['median_income'],
+                                bins=[0., 1.5, 3., 4.5, 6., np.inf],
+                                labels = [1, 2, 3, 4, 5])
+    data['income_cat'].hist()
+    return data
+    
+#If you want to run above code, uncomment below lines
+# =============================================================================
+# housing = load_housing_data()
+# create_income_category_attribute(housing)
+# =============================================================================
+
+# =============================================================================
+# Now we are ready to stratified sampling based on income category. for this we can 
+# use sklearn StratifiedSplit class.
+# =============================================================================
+
+def stratified_split_train_test(data):
+    
+    data = create_income_category_attribute(data)
+    from sklearn.model_selection import StratifiedShuffleSplit
+    split = StratifiedShuffleSplit(n_splits = 1, test_size = 0.2, random_state=42)
+    for train_index, test_index in split.split(data, data['income_cat']):
+        strat_train_set = data.loc[train_index]
+        strat_test_set = data.loc[test_index]
+        
+    return strat_train_set, strat_test_set
+
+housing = load_housing_data()
+train_set, test_set = stratified_split_train_test(housing)
+
+print(train_set['income_cat'].value_counts() / len(train_set))
+print(test_set['income_cat'].value_counts() / len(test_set))
+
+
